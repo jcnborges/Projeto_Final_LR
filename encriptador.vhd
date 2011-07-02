@@ -105,13 +105,14 @@ CONSTANT sbox : t_512_integer_vector :=
 	2,1,14,7,4,10,8,13,15,12,9,0,3,5,6,11	);
 -----------------------------------------------------------------------------
 
-CONSTANT pbox_permutation_map : t_32_integer_vector
-(	15,06,19,20,28,11,27,16,00,14,22,25,04,17,30,09
+CONSTANT pbox_permutation_map : t_32_integer_vector :=
+(	15,06,19,20,28,11,27,16,00,14,22,25,04,17,30,09,
 	01,07,23,13,31,26,02,08,18,12,29,05,21,10,03,24	);
 
 BEGIN PROCESS (enable)
 
 VARIABLE aux0 : BIT_VECTOR(63 DOWNTO 0); -- plain text permutado
+VARIABLE aux0_0 : BIT_VECTOR(63 DOWNTO 0); -- cipher text
 VARIABLE aux1 : BIT_VECTOR(55 DOWNTO 0); -- chave reduzida para 56 bits
 VARIABLE aux2 : BIT_VECTOR(55 DOWNTO 0); -- junção das metades da chave de 56 bits
 VARIABLE aux3 : BIT_VECTOR(47 DOWNTO 0); -- chave reduzida Ki, ou seja, chave da rodada número i
@@ -215,16 +216,26 @@ BEGIN
 		-- Permutação por P-box --
 		FOR i IN 0 TO 31 LOOP
 			aux8(i) := aux7(pbox_permutation_map(i));			
-		END LOOP
+		END LOOP;
 		
 		-- Xor final --
-		aux7 := right_data;
-		right_data := left_data xor aux8;
-		left_data := aux7;
+		aux7 := data_right;
+		data_right := data_left xor aux8;
+		data_left := aux7;
 	
 	END LOOP;
 	
-	cipher_text <= plan_text;
+	-- Permutação final
+	FOR i IN 0 TO 31 LOOP
+		aux0(i) := data_left(i);
+		aux0(i + 32) := data_right(i);
+	END LOOP;
+	
+	FOR i IN 0 TO 63 LOOP
+		aux0_0(i) := aux0(final_permutation_map(i));
+	END LOOP;
+	
+	cipher_text <= aux0_0;
 	
 END PROCESS;	
 END	encriptar;			
